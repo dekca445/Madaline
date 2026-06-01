@@ -586,14 +586,59 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ===== Q&A GEMINI HANDLER (Slide 8) =====
-  // API key disimpan di localStorage (diatur oleh presenter di halaman jawaban.html)
+  // ===== Q&A CLOUD SYNC HANDLER (Slide 8) =====
+  // Menggunakan GitHub Gist sebagai cloud database agar Q&A sinkron di semua perangkat
+  // Gist config disimpan di localStorage oleh presenter di jawaban.html
+
   function getGeminiKey() { return localStorage.getItem('madaline_gemini_key') || ''; }
+  function getGistConfig() {
+    return {
+      token: localStorage.getItem('madaline_gist_token') || '',
+      gistId: localStorage.getItem('madaline_gist_id') || ''
+    };
+  }
+
+  // === Cloud Sync: GitHub Gist ===
+  async function loadQAFromCloud() {
+    var config = getGistConfig();
+    if (!config.gistId) return null; // Gist belum dikonfigurasi
+    try {
+      var headers = { 'Accept': 'application/vnd.github.v3+json' };
+      if (config.token) headers['Authorization'] = 'Bearer ' + config.token;
+      var resp = await fetch('https://api.github.com/gists/' + config.gistId, { headers: headers });
+      if (!resp.ok) { console.warn('Gist load failed:', resp.status); return null; }
+      var data = await resp.json();
+      if (data.files && data.files['madaline_qa.json']) {
+        return JSON.parse(data.files['madaline_qa.json'].content);
+      }
+    } catch (e) { console.warn('Cloud sync load error:', e); }
+    return null;
+  }
+
+  async function saveQAToCloud(qaData) {
+    var config = getGistConfig();
+    if (!config.gistId || !config.token) return false; // Butuh token untuk menulis
+    try {
+      var resp = await fetch('https://api.github.com/gists/' + config.gistId, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'Bearer ' + config.token,
+          'Content-Type': 'application/json',
+          'Accept': 'application/vnd.github.v3+json'
+        },
+        body: JSON.stringify({
+          files: { 'madaline_qa.json': { content: JSON.stringify(qaData, null, 2) } }
+        })
+      });
+      return resp.ok;
+    } catch (e) { console.warn('Cloud sync save error:', e); return false; }
+  }
+
   // Model gemini-2.0 sudah sunset per 1 Juni 2026, gunakan model terbaru
   const GEMINI_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash'];
-  const MAX_QUESTIONS = 3;
+  const MAX_QUESTIONS = 5;
   const btnAsk = document.getElementById('btn-ask');
-  const qaHistory = [];
+  let qaHistory = [];
 
   function mdToHtml(text) {
     return text
@@ -689,8 +734,36 @@ document.addEventListener('DOMContentLoaded', () => {
     answerDiv.innerHTML = html;
   }
 
-  // Initialize slot display
-  updateQuestionSlots();
+  // === Inisialisasi: muat data dari cloud (Gist) lalu fallback ke localStorage ===
+  async function initQAData() {
+    // Coba muat dari cloud dulu
+    var cloudData = await loadQAFromCloud();
+    if (cloudData && cloudData.length > 0) {
+      qaHistory.length = 0;
+      cloudData.forEach(function(q) { qaHistory.push(q); });
+      // Sync ke localStorage juga sebagai cache lokal
+      localStorage.setItem('madaline_qa_history', JSON.stringify(qaHistory));
+    } else {
+      // Fallback: muat dari localStorage
+      var stored = localStorage.getItem('madaline_qa_history');
+      if (stored) {
+        try {
+          var parsed = JSON.parse(stored);
+          parsed.forEach(function(q) { qaHistory.push(q); });
+        } catch(e) {}
+      }
+    }
+    updateQuestionSlots();
+
+    // Update button state
+    if (btnAsk && qaHistory.length >= MAX_QUESTIONS) {
+      btnAsk.disabled = true;
+      btnAsk.textContent = '🔒 Slot Penuh';
+    }
+  }
+
+  // Jalankan inisialisasi
+  initQAData();
 
   if (btnAsk) {
     btnAsk.addEventListener('click', async function() {
@@ -736,7 +809,15 @@ document.addEventListener('DOMContentLoaded', () => {
         aiSuccess: aiSuccess,
         time: new Date().toLocaleTimeString('id-ID')
       });
+
+      // Simpan ke localStorage (cache lokal)
       localStorage.setItem('madaline_qa_history', JSON.stringify(qaHistory));
+
+      // Simpan ke cloud (GitHub Gist) — async, tidak blocking
+      saveQAToCloud(qaHistory).then(function(ok) {
+        if (ok) console.log('Q&A synced to cloud (Gist)');
+        else console.warn('Cloud sync skipped (no Gist config or token)');
+      });
 
       // Update tampilan slide 8 — hanya pertanyaan, TANPA jawaban, TANPA error
       updateQuestionSlots();
