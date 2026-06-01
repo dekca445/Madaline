@@ -108,40 +108,19 @@
     </div>
   </div>
 
-  <!-- Cloud Sync Config (GitHub Gist) -->
-  <div class="config-card" style="border-left:4px solid var(--primary);">
-    <h3>Cloud Sync — GitHub Gist</h3>
+  <!-- Cloud Sync Status -->
+  <div class="config-card" style="border-left:4px solid #059669;">
+    <h3 style="color:#059669;">Cloud Sync — Firebase</h3>
     <p style="font-size:13px;color:var(--on-surface-variant);margin-bottom:12px;">
-      Agar pertanyaan dari HP muncul di laptop, konfigurasi cloud sync menggunakan GitHub Gist.
-      Data Q&A akan disimpan di Gist dan bisa diakses dari perangkat manapun.
+      Data Q&A disinkronkan otomatis via Firebase Realtime Database. Pertanyaan dari HP audiens langsung muncul di sini.
     </p>
-    <div style="background:var(--surface-container-low);border-radius:var(--radius-md);padding:12px 16px;margin-bottom:16px;font-size:12px;line-height:1.7;color:var(--on-surface-variant);">
-      <strong style="color:var(--primary);display:block;margin-bottom:4px;">Cara Setup:</strong>
-      1. Buka <a href="https://gist.github.com" target="_blank" style="color:var(--primary);font-weight:600;">gist.github.com</a> → buat Gist baru dengan nama file <code style="background:var(--surface-container);padding:1px 6px;border-radius:4px;">madaline_qa.json</code> dan isi <code style="background:var(--surface-container);padding:1px 6px;border-radius:4px;">[]</code><br>
-      2. Copy Gist ID dari URL (bagian akhir setelah username/)<br>
-      3. Buat token di <a href="https://github.com/settings/tokens?type=beta" target="_blank" style="color:var(--primary);font-weight:600;">GitHub Settings → Fine-grained tokens</a> dengan permission "Gists: Read and Write"<br>
-      4. Masukkan keduanya di bawah ini, lalu klik Simpan
-    </div>
-    <div class="config-row">
-      <div class="input-group">
-        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--on-surface-variant);margin-bottom:4px;display:block;">GIST ID</label>
-        <input type="text" id="gist-id-input" placeholder="Contoh: abc123def456..." />
-      </div>
-    </div>
-    <div class="config-row">
-      <div class="input-group">
-        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--on-surface-variant);margin-bottom:4px;display:block;">GITHUB TOKEN</label>
-        <input type="password" id="gist-token-input" placeholder="github_pat_..." />
-      </div>
-      <button class="btn btn-primary" id="btn-save-gist" style="height:42px;white-space:nowrap;">Simpan</button>
-    </div>
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <div>
-        <span>Sync Status: </span>
-        <span class="key-status" id="gist-status">—</span>
+        <span>Status: </span>
+        <span class="key-status key-active" id="firebase-status">Aktif — Auto Sync</span>
       </div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-secondary" id="btn-test-gist" style="font-size:12px;padding:6px 14px;">Test Koneksi</button>
+        <button class="btn btn-secondary" id="btn-test-firebase" style="font-size:12px;padding:6px 14px;">Test Koneksi</button>
         <button class="btn btn-reset" id="btn-clear-data" style="font-size:12px;padding:6px 14px;">Reset Semua Data Q&A</button>
       </div>
     </div>
@@ -158,6 +137,7 @@
 
 <script>
   const PASSWORD = 'jawaban';
+  const FIREBASE_DB_URL = 'https://madaline-qa-default-rtdb.asia-southeast1.firebasedatabase.app';
 
   // Login handler
   const loginOverlay = document.getElementById('login-overlay');
@@ -172,7 +152,6 @@
       mainContent.style.display = '';
       loadQuestions();
       loadKeyStatus();
-      loadGistStatus();
     } else {
       loginError.style.display = '';
       passwordInput.value = '';
@@ -209,70 +188,21 @@
     alert('API Key berhasil disimpan.');
   });
 
-  // === Gist Cloud Sync Config ===
-  function loadGistStatus() {
-    var gistId = localStorage.getItem('madaline_gist_id') || '';
-    var token = localStorage.getItem('madaline_gist_token') || '';
-    var statusEl = document.getElementById('gist-status');
-    var gistIdInput = document.getElementById('gist-id-input');
-    var tokenInput = document.getElementById('gist-token-input');
-
-    if (gistId && token) {
-      statusEl.textContent = 'Gist ID: ' + gistId.substring(0, 8) + '... (aktif)';
-      statusEl.className = 'key-status key-active';
-      gistIdInput.placeholder = 'Gist ID sudah tersimpan';
-      tokenInput.placeholder = 'Token sudah tersimpan';
-    } else if (gistId) {
-      statusEl.textContent = 'Gist ID ada, tapi token belum';
-      statusEl.className = 'key-status key-missing';
-    } else {
-      statusEl.textContent = 'Belum dikonfigurasi';
-      statusEl.className = 'key-status key-missing';
-    }
-  }
-
-  document.getElementById('btn-save-gist').addEventListener('click', function() {
-    var gistId = document.getElementById('gist-id-input').value.trim();
-    var token = document.getElementById('gist-token-input').value.trim();
-    if (!gistId && !token) { alert('Masukkan Gist ID dan/atau GitHub Token!'); return; }
-    if (gistId) localStorage.setItem('madaline_gist_id', gistId);
-    if (token) localStorage.setItem('madaline_gist_token', token);
-    document.getElementById('gist-id-input').value = '';
-    document.getElementById('gist-token-input').value = '';
-    loadGistStatus();
-    alert('Konfigurasi Gist berhasil disimpan! Q&A sekarang akan disinkronkan ke cloud.');
-    // Reload questions from cloud
-    loadQuestions();
-  });
-
-  document.getElementById('btn-test-gist').addEventListener('click', async function() {
-    var gistId = localStorage.getItem('madaline_gist_id') || '';
-    var token = localStorage.getItem('madaline_gist_token') || '';
-    var statusEl = document.getElementById('gist-status');
-    if (!gistId) { alert('Gist ID belum diatur!'); return; }
-
+  // === Firebase Test Connection ===
+  document.getElementById('btn-test-firebase').addEventListener('click', async function() {
+    var statusEl = document.getElementById('firebase-status');
     statusEl.textContent = 'Testing...';
     statusEl.className = 'key-status key-missing';
-
     try {
-      var headers = { 'Accept': 'application/vnd.github.v3+json' };
-      if (token) headers['Authorization'] = 'Bearer ' + token;
-      var resp = await fetch('https://api.github.com/gists/' + gistId, { headers: headers });
+      var resp = await fetch(FIREBASE_DB_URL + '/questions.json');
       if (resp.ok) {
-        var data = await resp.json();
-        if (data.files && data.files['madaline_qa.json']) {
-          statusEl.textContent = 'Koneksi berhasil! File madaline_qa.json ditemukan.';
-          statusEl.className = 'key-status key-active';
-          alert('Koneksi berhasil! Gist ditemukan dan siap digunakan.');
-        } else {
-          statusEl.textContent = 'Gist ditemukan, tapi file madaline_qa.json tidak ada.';
-          statusEl.className = 'key-status key-missing';
-          alert('Gist ditemukan, tapi file "madaline_qa.json" tidak ada.\nBuat file tersebut di Gist dengan isi: []');
-        }
+        statusEl.textContent = 'Koneksi berhasil! Firebase aktif.';
+        statusEl.className = 'key-status key-active';
+        alert('Koneksi Firebase berhasil!');
       } else {
         statusEl.textContent = 'Gagal! HTTP ' + resp.status;
         statusEl.className = 'key-status key-missing';
-        alert('Koneksi gagal! Status: ' + resp.status + '\nPastikan Gist ID dan Token benar.');
+        alert('Koneksi gagal! Status: ' + resp.status);
       }
     } catch (e) {
       statusEl.textContent = 'Error: ' + e.message;
@@ -281,62 +211,33 @@
     }
   });
 
+  // === Reset Q&A Data ===
   document.getElementById('btn-clear-data').addEventListener('click', async function() {
-    if (confirm('Yakin ingin menghapus semua data Q&A? Ini akan menghapus pertanyaan dan jawaban dari lokal DAN cloud.')) {
-      localStorage.removeItem('madaline_qa_history');
-      // Juga hapus dari cloud (Gist)
-      var gistId = localStorage.getItem('madaline_gist_id') || '';
-      var token = localStorage.getItem('madaline_gist_token') || '';
-      if (gistId && token) {
-        try {
-          await fetch('https://api.github.com/gists/' + gistId, {
-            method: 'PATCH',
-            headers: {
-              'Authorization': 'Bearer ' + token,
-              'Content-Type': 'application/json',
-              'Accept': 'application/vnd.github.v3+json'
-            },
-            body: JSON.stringify({
-              files: { 'madaline_qa.json': { content: '[]' } }
-            })
-          });
-        } catch(e) { console.warn('Cloud clear error:', e); }
-      }
+    if (confirm('Yakin ingin menghapus semua data Q&A? Ini akan menghapus dari Firebase (cloud).')) {
+      try {
+        await fetch(FIREBASE_DB_URL + '/questions.json', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(null)
+        });
+      } catch(e) { console.warn('Firebase clear error:', e); }
       loadQuestions();
-      alert('Data Q&A berhasil direset (lokal & cloud).');
+      alert('Data Q&A berhasil direset.');
     }
   });
 
-  // === Cloud Sync Helper ===
-  async function loadQAFromCloud() {
-    var gistId = localStorage.getItem('madaline_gist_id') || '';
-    var token = localStorage.getItem('madaline_gist_token') || '';
-    if (!gistId) return null;
-    try {
-      var headers = { 'Accept': 'application/vnd.github.v3+json' };
-      if (token) headers['Authorization'] = 'Bearer ' + token;
-      var resp = await fetch('https://api.github.com/gists/' + gistId, { headers: headers });
-      if (!resp.ok) return null;
-      var data = await resp.json();
-      if (data.files && data.files['madaline_qa.json']) {
-        return JSON.parse(data.files['madaline_qa.json'].content);
-      }
-    } catch(e) { console.warn('Cloud load error:', e); }
-    return null;
-  }
-
-  // Q&A Loading — prioritas cloud, fallback localStorage
+  // === Load Questions from Firebase ===
   async function loadQuestions() {
-    // Coba dari cloud dulu
-    var list = await loadQAFromCloud();
-    if (list === null) {
-      // Fallback ke localStorage
-      var stored = localStorage.getItem('madaline_qa_history');
-      list = stored ? JSON.parse(stored) : [];
-    } else {
-      // Sync cloud → localStorage
-      localStorage.setItem('madaline_qa_history', JSON.stringify(list));
-    }
+    var list = [];
+    try {
+      var resp = await fetch(FIREBASE_DB_URL + '/questions.json');
+      if (resp.ok) {
+        var data = await resp.json();
+        if (data) {
+          list = Array.isArray(data) ? data.filter(Boolean) : Object.values(data);
+        }
+      }
+    } catch(e) { console.warn('Firebase load error:', e); }
 
     var container = document.getElementById('qa-list');
     var countEl = document.getElementById('total-count');
@@ -377,8 +278,8 @@
     }).reverse().join('');
   }
 
-  // Auto-refresh every 5 seconds (cloud calls lebih lambat)
-  setInterval(loadQuestions, 5000);
+  // Auto-refresh every 3 seconds
+  setInterval(loadQuestions, 3000);
   document.getElementById('btn-refresh').addEventListener('click', loadQuestions);
 </script>
 </body>

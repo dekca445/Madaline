@@ -586,52 +586,36 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ===== Q&A CLOUD SYNC HANDLER (Slide 8) =====
-  // Menggunakan GitHub Gist sebagai cloud database agar Q&A sinkron di semua perangkat
-  // Gist config disimpan di localStorage oleh presenter di jawaban.html
+  // ===== Q&A FIREBASE CLOUD SYNC (Slide 8) =====
+  // Menggunakan Firebase Realtime Database — sinkron otomatis di semua perangkat
+  // Audiens TIDAK perlu setup apapun, cukup buka web dan bertanya
+
+  const FIREBASE_DB_URL = 'https://madaline-qa-default-rtdb.asia-southeast1.firebasedatabase.app';
 
   function getGeminiKey() { return localStorage.getItem('madaline_gemini_key') || ''; }
-  function getGistConfig() {
-    return {
-      token: localStorage.getItem('madaline_gist_token') || '',
-      gistId: localStorage.getItem('madaline_gist_id') || ''
-    };
-  }
 
-  // === Cloud Sync: GitHub Gist ===
-  async function loadQAFromCloud() {
-    var config = getGistConfig();
-    if (!config.gistId) return null; // Gist belum dikonfigurasi
+  // === Firebase Cloud Sync ===
+  async function loadQAFromFirebase() {
     try {
-      var headers = { 'Accept': 'application/vnd.github.v3+json' };
-      if (config.token) headers['Authorization'] = 'Bearer ' + config.token;
-      var resp = await fetch('https://api.github.com/gists/' + config.gistId, { headers: headers });
-      if (!resp.ok) { console.warn('Gist load failed:', resp.status); return null; }
+      var resp = await fetch(FIREBASE_DB_URL + '/questions.json');
+      if (!resp.ok) { console.warn('Firebase load failed:', resp.status); return []; }
       var data = await resp.json();
-      if (data.files && data.files['madaline_qa.json']) {
-        return JSON.parse(data.files['madaline_qa.json'].content);
-      }
-    } catch (e) { console.warn('Cloud sync load error:', e); }
-    return null;
+      if (!data) return [];
+      // Firebase menyimpan sebagai object, convert ke array
+      if (Array.isArray(data)) return data.filter(Boolean);
+      return Object.values(data);
+    } catch (e) { console.warn('Firebase load error:', e); return []; }
   }
 
-  async function saveQAToCloud(qaData) {
-    var config = getGistConfig();
-    if (!config.gistId || !config.token) return false; // Butuh token untuk menulis
+  async function saveQAToFirebase(qaData) {
     try {
-      var resp = await fetch('https://api.github.com/gists/' + config.gistId, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': 'Bearer ' + config.token,
-          'Content-Type': 'application/json',
-          'Accept': 'application/vnd.github.v3+json'
-        },
-        body: JSON.stringify({
-          files: { 'madaline_qa.json': { content: JSON.stringify(qaData, null, 2) } }
-        })
+      var resp = await fetch(FIREBASE_DB_URL + '/questions.json', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(qaData)
       });
       return resp.ok;
-    } catch (e) { console.warn('Cloud sync save error:', e); return false; }
+    } catch (e) { console.warn('Firebase save error:', e); return false; }
   }
 
   // Model gemini-2.0 sudah sunset per 1 Juni 2026, gunakan model terbaru
@@ -734,24 +718,12 @@ document.addEventListener('DOMContentLoaded', () => {
     answerDiv.innerHTML = html;
   }
 
-  // === Inisialisasi: muat data dari cloud (Gist) lalu fallback ke localStorage ===
+  // === Inisialisasi: muat data dari Firebase ===
   async function initQAData() {
-    // Coba muat dari cloud dulu
-    var cloudData = await loadQAFromCloud();
+    var cloudData = await loadQAFromFirebase();
     if (cloudData && cloudData.length > 0) {
       qaHistory.length = 0;
       cloudData.forEach(function(q) { qaHistory.push(q); });
-      // Sync ke localStorage juga sebagai cache lokal
-      localStorage.setItem('madaline_qa_history', JSON.stringify(qaHistory));
-    } else {
-      // Fallback: muat dari localStorage
-      var stored = localStorage.getItem('madaline_qa_history');
-      if (stored) {
-        try {
-          var parsed = JSON.parse(stored);
-          parsed.forEach(function(q) { qaHistory.push(q); });
-        } catch(e) {}
-      }
     }
     updateQuestionSlots();
 
@@ -802,7 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
         aiSuccess = false;
       }
 
-      // Simpan pertanyaan + jawaban (atau fallback) ke history
+      // Simpan pertanyaan + jawaban ke history
       qaHistory.push({
         nim: nim, nama: nama, kelas: kelas,
         question: question, answer: answerHtml,
@@ -810,13 +782,10 @@ document.addEventListener('DOMContentLoaded', () => {
         time: new Date().toLocaleTimeString('id-ID')
       });
 
-      // Simpan ke localStorage (cache lokal)
-      localStorage.setItem('madaline_qa_history', JSON.stringify(qaHistory));
-
-      // Simpan ke cloud (GitHub Gist) — async, tidak blocking
-      saveQAToCloud(qaHistory).then(function(ok) {
-        if (ok) console.log('Q&A synced to cloud (Gist)');
-        else console.warn('Cloud sync skipped (no Gist config or token)');
+      // Simpan ke Firebase (cloud) — async, tidak blocking
+      saveQAToFirebase(qaHistory).then(function(ok) {
+        if (ok) console.log('Q&A synced to Firebase');
+        else console.warn('Firebase sync failed');
       });
 
       // Update tampilan slide 8 — hanya pertanyaan, TANPA jawaban, TANPA error
