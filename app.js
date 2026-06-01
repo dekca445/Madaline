@@ -763,7 +763,7 @@ document.addEventListener('DOMContentLoaded', () => {
       var aiSuccess = false;
 
       try {
-        var systemPrompt = 'Kamu adalah asisten AI ahli di bidang Data Mining dan Jaringan Saraf Tiruan, khususnya algoritma MADALINE (Many Adaptive Linear Element). Jawab pertanyaan dengan jelas, terstruktur, dan dalam Bahasa Indonesia. Fokus pada topik: ADALINE, MADALINE, fungsi aktivasi bipolar, MR-I learning rule, deteksi penyakit flu menggunakan neural network. Jangan menyebutkan bahwa kamu adalah Gemini atau produk Google. Jawab dengan detail dan komprehensif.';
+        var systemPrompt = 'Kamu adalah asisten AI ahli algoritma MADALINE (Many Adaptive Linear Element). ATURAN WAJIB: Jawab MAKSIMAL 2-3 kalimat saja. Langsung ke inti jawaban, tanpa basa-basi, tanpa pendahuluan, tanpa pengulangan pertanyaan. Gunakan Bahasa Indonesia. Fokus: ADALINE, MADALINE, fungsi aktivasi bipolar, MR-I learning rule, deteksi flu. Jangan sebut Gemini/Google. Singkat tapi akurat.';
         var fullQuestion = 'Pertanyaan dari mahasiswa ' + nama + ' (NIM: ' + nim + ', Kelas: ' + kelas + '):\n\n' + question;
         var result = await askGemini(fullQuestion, systemPrompt);
         answerHtml = mdToHtml(result.answer);
