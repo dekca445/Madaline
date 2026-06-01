@@ -479,10 +479,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const yOut = (y1 === 1 && y2 === 1) ? 1 : -1;
       const fmt = n => Number(n.toFixed(4));
       const label = tgt === 1 ? 'Flu' : 'Tidak Flu';
-      const emoji = tgt === 1 ? '🤒' : '✅';
       html += `<div class="card example-card ${ex.type}">
         <div class="example-header">
-          <span style="font-size:24px;">${emoji}</span>
           <div><strong>Data #${ex.idx+1}</strong> — Input: [${inp.join(', ')}]</div>
           <span class="example-badge ${ex.type}">${label}</span>
         </div>

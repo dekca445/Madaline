@@ -63,7 +63,7 @@
 <!-- Login Overlay -->
 <div class="login-overlay" id="login-overlay">
   <div class="login-box">
-    <div style="font-size:48px;margin-bottom:16px;">🔒</div>
+    <div style="color:var(--primary);margin-bottom:16px;display:flex;justify-content:center;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div>
     <h2>Halaman Jawaban</h2>
     <p>Masukkan password untuk mengakses jawaban Q&A</p>
     <input type="password" id="password-input" placeholder="Password..." autofocus/>
@@ -88,7 +88,7 @@
 
   <!-- API Key Config -->
   <div class="config-card">
-    <h3>⚙️ Konfigurasi API Key (Gemini)</h3>
+    <h3>Konfigurasi API Key (Gemini)</h3>
     <p style="font-size:13px;color:var(--on-surface-variant);margin-bottom:12px;">
       Masukkan API key Gemini agar AI bisa menjawab pertanyaan otomatis. Key disimpan di browser ini saja (tidak di-upload ke GitHub).
       <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--primary);font-weight:600;">Dapatkan key →</a>
@@ -98,20 +98,20 @@
         <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--on-surface-variant);margin-bottom:4px;display:block;">API KEY</label>
         <input type="password" id="api-key-input" placeholder="Masukkan Gemini API Key..." />
       </div>
-      <button class="btn btn-primary" id="btn-save-key" style="height:42px;white-space:nowrap;">💾 Simpan</button>
+      <button class="btn btn-primary" id="btn-save-key" style="height:42px;white-space:nowrap;">Simpan</button>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <div>
         <span>Status: </span>
         <span class="key-status" id="key-status">—</span>
       </div>
-      <button class="btn btn-reset" id="btn-clear-data" style="font-size:12px;padding:6px 14px;">🗑️ Reset Semua Data Q&A</button>
+      <button class="btn btn-reset" id="btn-clear-data" style="font-size:12px;padding:6px 14px;">Reset Semua Data Q&A</button>
     </div>
   </div>
 
   <div id="qa-list">
     <div class="empty-state">
-      <div class="icon">📭</div>
+      <div class="icon" style="color:var(--primary);"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></div>
       <h3>Belum Ada Pertanyaan</h3>
       <p>Pertanyaan dari audience akan muncul di sini secara real-time.</p>
     </div>
@@ -151,11 +151,11 @@
     var statusEl = document.getElementById('key-status');
     var inputEl = document.getElementById('api-key-input');
     if (key) {
-      statusEl.textContent = '✅ Key tersimpan (' + key.substring(0, 8) + '...)';
+      statusEl.textContent = 'Key tersimpan (' + key.substring(0, 8) + '...)';
       statusEl.className = 'key-status key-active';
       inputEl.placeholder = 'Key sudah tersimpan (isi untuk mengganti)';
     } else {
-      statusEl.textContent = '❌ Belum diatur';
+      statusEl.textContent = 'Belum diatur';
       statusEl.className = 'key-status key-missing';
       inputEl.placeholder = 'Masukkan Gemini API Key...';
     }
@@ -167,7 +167,7 @@
     localStorage.setItem('madaline_gemini_key', key);
     document.getElementById('api-key-input').value = '';
     loadKeyStatus();
-    alert('✅ API Key berhasil disimpan!');
+    alert('API Key berhasil disimpan.');
   });
 
   document.getElementById('btn-clear-data').addEventListener('click', function() {
@@ -189,7 +189,7 @@
 
     if (list.length === 0) {
       container.innerHTML = `<div class="empty-state">
-        <div class="icon">📭</div>
+        <div class="icon" style="color:var(--primary);"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></div>
         <h3>Belum Ada Pertanyaan</h3>
         <p>Pertanyaan dari audience akan muncul di sini secara real-time.</p>
       </div>`;
@@ -199,9 +199,9 @@
     container.innerHTML = list.map((q, i) => {
       var statusBadge = '';
       if (q.aiSuccess === false) {
-        statusBadge = '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#fef3cd;color:#92400e;">⚠️ Jawab Manual</span>';
+        statusBadge = '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#fef3cd;color:#92400e;">Jawab Manual</span>';
       } else {
-        statusBadge = '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#d1fae5;color:#065f46;">✅ AI Generated</span>';
+        statusBadge = '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:#d1fae5;color:#065f46;">AI Generated</span>';
       }
       return `
       <div class="qa-item">
@@ -215,7 +215,7 @@
             <span class="qa-item-meta">${q.time || ''}</span>
           </div>
         </div>
-        <div class="qa-item-question">❓ ${q.question}</div>
+        <div class="qa-item-question">${q.question}</div>
         <div class="qa-item-answer">${q.answer}</div>
       </div>`;
     }).reverse().join('');
