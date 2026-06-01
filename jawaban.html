@@ -179,13 +179,21 @@
     }
   }
 
-  document.getElementById('btn-save-key').addEventListener('click', function() {
+  document.getElementById('btn-save-key').addEventListener('click', async function() {
     var key = document.getElementById('api-key-input').value.trim();
     if (!key) { alert('Masukkan API key!'); return; }
     localStorage.setItem('madaline_gemini_key', key);
+    // Simpan juga ke Firebase agar semua device bisa pakai
+    try {
+      await fetch(FIREBASE_DB_URL + '/config/gemini_key.json', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(key)
+      });
+    } catch(e) { console.warn('Firebase key save error:', e); }
     document.getElementById('api-key-input').value = '';
     loadKeyStatus();
-    alert('API Key berhasil disimpan.');
+    alert('API Key berhasil disimpan (lokal + cloud). Semua device sekarang bisa menggunakan AI.');
   });
 
   // === Firebase Test Connection ===

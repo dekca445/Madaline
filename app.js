@@ -591,9 +591,28 @@ document.addEventListener('DOMContentLoaded', () => {
   // Audiens TIDAK perlu setup apapun, cukup buka web dan bertanya
 
   const FIREBASE_DB_URL = 'https://madaline-qa-default-rtdb.asia-southeast1.firebasedatabase.app';
+  // === Gemini API Key: Firebase-first, fallback localStorage ===
+  let _cachedGeminiKey = localStorage.getItem('madaline_gemini_key') || '';
 
-  function getGeminiKey() { return localStorage.getItem('madaline_gemini_key') || ''; }
+  async function fetchGeminiKeyFromFirebase() {
+    try {
+      var resp = await fetch(FIREBASE_DB_URL + '/config/gemini_key.json');
+      if (resp.ok) {
+        var key = await resp.json();
+        if (key && typeof key === 'string') {
+          _cachedGeminiKey = key;
+          localStorage.setItem('madaline_gemini_key', key);
+          return key;
+        }
+      }
+    } catch(e) { console.warn('Firebase key load error:', e); }
+    return _cachedGeminiKey;
+  }
 
+  function getGeminiKey() { return _cachedGeminiKey; }
+
+  // Pre-fetch key dari Firebase saat halaman dimuat
+  fetchGeminiKeyFromFirebase();
   // === Firebase Cloud Sync ===
   async function loadQAFromFirebase() {
     try {
