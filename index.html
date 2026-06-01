@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MADALINE — Deteksi Penyakit Flu</title>
+  <meta name="description" content="Presentasi interaktif implementasi algoritma MADALINE untuk deteksi penyakit flu"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"/>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script defer src="madaline-engine.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+
+<!-- ===== TOP BAR ===== -->
+<header class="topbar" id="topbar">
+  <div class="topbar-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><line x1="12" y1="7.5" x2="5" y2="16.5"/><line x1="12" y1="7.5" x2="19" y2="16.5"/><line x1="5" y1="19" x2="19" y2="19"/></svg>
+    MADALINE Explorer
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <span id="slide-indicator" class="font-label" style="color:var(--on-surface-variant)">1 / 8</span>
+  </div>
+</header>
+
+<!-- ===== PROGRESS BAR ===== -->
+<div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:12.5%"></div></div>
+
+<!-- ===== SLIDES ===== -->
+<div class="slide-viewport" id="slide-viewport">
+
+  <!-- ========== SLIDE 1: LANDING PAGE ========== -->
+  <section class="slide hero-slide active" id="slide-1">
+    <div class="hero-grid-bg"></div>
+    <div class="hero-content">
+      <div class="hero-badge">📡 Data Mining — Jaringan Saraf Tiruan</div>
+      <h1 class="hero-title">MADALINE</h1>
+      <p class="hero-subtitle">Implementasi Algoritma Many Adaptive Linear Element untuk Deteksi Penyakit Flu — Berdasarkan gejala Demam, Batuk, dan Pilek.</p>
+      <div class="hero-cta">
+        <button class="hero-btn" id="hero-start-btn">
+          <span>Mulai Eksplorasi</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+      <div class="hero-features">
+        <div class="hero-feature-chip">🧠 Neural Network</div>
+        <div class="hero-feature-chip">🏥 Deteksi Flu</div>
+        <div class="hero-feature-chip">📊 20 Dataset</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== SLIDE 2: TEORI ADALINE & MADALINE ========== -->
+  <section class="slide" id="slide-2">
+    <div class="slide-inner">
+      <div class="section-header">
+        <div class="section-overline">Slide 2 — Fondasi Teori</div>
+        <h2 class="font-headline-lg">ADALINE & MADALINE</h2>
+      </div>
+      <div class="theory-grid">
+        <div>
+          <ul class="concept-list">
+            <li><strong>ADALINE</strong> (Adaptive Linear Neuron) — unit jaringan saraf dasar oleh Widrow & Hoff (1960). Menggunakan <strong>net input</strong> langsung untuk pembelajaran.</li>
+            <li><strong>MADALINE</strong> (Many ADALINE) — menggabungkan beberapa unit ADALINE dalam hidden layer untuk menyelesaikan masalah <strong>klasifikasi non-linear</strong>.</li>
+            <li>Arsitektur kami: <strong>3 Input → 2 ADALINE → 1 Output</strong> dengan <strong>AND Gate</strong> untuk deteksi penyakit flu.</li>
+            <li><strong>Fungsi Aktivasi Bipolar:</strong> Menghasilkan output <strong>+1</strong> (Flu) jika net input ≥ 0, atau <strong>-1</strong> (Tidak Flu) jika di bawah 0.</li>
+          </ul>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="card">
+            <div class="card-header"><span class="font-label">Rumus Net Input</span></div>
+            <div class="card-body">
+              <div id="formula-net" class="formula-highlight"></div>
+              <p class="font-body-md" style="color:var(--on-surface-variant);margin-top:8px;">Dimana <em>b</em> = bias, <em>X<sub>i</sub></em> = input gejala, <em>W<sub>i</sub></em> = bobot koneksi.</p>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="font-label">Fungsi Aktivasi Step</span></div>
+            <div class="card-body">
+              <div id="formula-step" class="formula-highlight"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="font-label">Aturan Pembaruan Bobot</span></div>
+            <div class="card-body">
+              <div id="formula-update" class="formula-highlight"></div>
+              <p class="font-body-md" style="color:var(--on-surface-variant);margin-top:8px;">Dimana <em>α</em> = laju pembelajaran, <em>t</em> = target ADALINE, <em>Z<sub>in</sub></em> = net input.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== SLIDE 3: ARSITEKTUR ========== -->
+  <section class="slide" id="slide-3">
+    <div class="slide-inner">
+      <div class="section-header">
+        <div class="section-overline">Slide 3 — Arsitektur Jaringan</div>
+        <h2 class="font-headline-lg">Arsitektur MADALINE untuk Deteksi Flu</h2>
+      </div>
+      <div class="theory-grid">
+        <div>
+          <ul class="concept-list">
+            <li><strong>Input Layer:</strong> 3 neuron untuk fitur gejala — Demam (X₁), Batuk (X₂), Pilek (X₃). Nilai bipolar: +1 = Ya, -1 = Tidak.</li>
+            <li><strong>Hidden Layer:</strong> 2 unit ADALINE. Masing-masing memiliki 3 bobot (w₁, w₂, w₃) dan 1 bias (b).</li>
+            <li><strong>Output Layer:</strong> 1 neuron dengan <strong>AND Gate</strong>. Y_out = +1 jika kedua ADALINE = +1.</li>
+            <li><strong>AND Gate:</strong> Jika salah satu ADALINE bernilai -1, maka output = -1. Output = +1 hanya jika kedua ADALINE = +1.</li>
+          </ul>
+          <div class="card" style="margin-top:16px;">
+            <div class="card-header"><span class="font-label">Formula AND Gate</span></div>
+            <div class="card-body"><div id="formula-majority" class="formula-highlight"></div></div>
+          </div>
+        </div>
+        <div>
+          <div class="network-vis-container" id="arch-svg-container">
+            <!-- SVG arsitektur dirender oleh JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== SLIDE 4: DATASET ========== -->
+  <section class="slide" id="slide-4">
+    <div class="slide-inner">
+      <div class="section-header">
+        <div class="section-overline">Slide 4 — Data Pelatihan</div>
+        <h2 class="font-headline-lg">Dataset Penyakit Flu (20 Data)</h2>
+      </div>
+      <p class="font-body-lg" style="color:var(--on-surface-variant);margin-bottom:20px;">
+        Dataset berisi 20 data pasien dengan 3 fitur gejala dan label klasifikasi flu.
+      </p>
+      <div class="dataset-layout">
+        <div class="dataset-table-wrapper">
+          <div class="card">
+            <div class="card-header">
+              <span class="font-label">Tabel Dataset</span>
+              <span class="font-label" style="color:var(--secondary);">20 Data</span>
+            </div>
+            <div class="card-body" style="padding:0;">
+              <div class="table-scroll" style="max-height:460px;">
+                <table class="data-table" id="dataset-table">
+                  <thead>
+                    <tr>
+                      <th>No</th>
+                      <th>Demam (X₁)</th>
+                      <th>Batuk (X₂)</th>
+                      <th>Pilek (X₃)</th>
+                      <th>Output (Target)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dataset-tbody">
+                    <!-- Diisi oleh JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="dataset-stats">
+          <div class="card stat-card" style="background:linear-gradient(135deg,#fef3cd,#fff8e1);">
+            <div class="stat-value" style="color:#b45309;" id="stat-total">20</div>
+            <div class="stat-label">Total Data</div>
+          </div>
+          <div class="card stat-card" style="background:linear-gradient(135deg,#fee2e2,#fef2f2);">
+            <div class="stat-value" style="color:#dc2626;" id="stat-flu">12</div>
+            <div class="stat-label">🤒 Flu</div>
+          </div>
+          <div class="card stat-card" style="background:linear-gradient(135deg,#d1fae5,#ecfdf5);">
+            <div class="stat-value" style="color:#059669;" id="stat-notflu">8</div>
+            <div class="stat-label">✅ Tidak Flu</div>
+          </div>
+          <div class="card" style="padding:16px;">
+            <div class="font-label" style="margin-bottom:12px;">Keterangan Nilai</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div class="legend-item"><span class="badge badge-yes">+1</span> = Ya (Memiliki gejala)</div>
+              <div class="legend-item"><span class="badge badge-no">-1</span> = Tidak (Tidak ada gejala)</div>
+              <hr style="border:0;border-top:1px solid var(--outline-variant);margin:4px 0;">
+              <div class="legend-item"><span class="badge badge-flu">Flu</span> = Target +1</div>
+              <div class="legend-item"><span class="badge badge-notflu">Tidak Flu</span> = Target -1</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== SLIDE 5: CONTOH PERHITUNGAN ========== -->
+  <section class="slide" id="slide-5">
+    <div class="slide-inner">
+      <div class="section-header">
+        <div class="section-overline">Slide 5 — Contoh Perhitungan Manual</div>
+        <h2 class="font-headline-lg">Perhitungan Step-by-Step</h2>
+      </div>
+      <p class="font-body-lg" style="color:var(--on-surface-variant);margin-bottom:20px;">
+        Dua contoh perhitungan: satu data yang outputnya <strong style="color:#dc2626;">1 (Flu)</strong> dan satu yang outputnya <strong style="color:#059669;">0 (Tidak Flu)</strong>, menggunakan bobot awal.
+      </p>
+      <div class="example-grid" id="example-calculations">
+        <!-- Diisi oleh JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== SLIDE 6: TRAINING SEMUA DATA ========== -->
+  <section class="slide" id="slide-6">
+    <div class="slide-inner">
+      <div class="section-header">
+        <div class="section-overline">Slide 6 — Proses Training</div>
+        <h2 class="font-headline-lg">Training 20 Data</h2>
+      </div>
+      <div class="sim-layout">
+        <!-- Config Panel -->
+        <div class="sim-config">
+          <div class="card">
+            <div class="card-header"><h3 class="font-headline-sm">Konfigurasi</h3></div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:16px;">
+              <div class="input-group">
+                <label for="inp-lr">Laju Pembelajaran (α)</label>
+                <input id="inp-lr" type="number" value="0.1" step="0.05" min="0.01" max="1"/>
+              </div>
+              <div class="input-group">
+                <label for="inp-epochs">Epoch Maksimal</label>
+                <input id="inp-epochs" type="number" value="100" min="1" max="500"/>
+              </div>
+              <button class="btn btn-primary" id="btn-train" style="width:100%;">▶ Mulai Training</button>
+              <button class="btn btn-secondary" id="btn-step" style="width:100%;">→ Langkah Selanjutnya</button>
+              <button class="btn btn-reset" id="btn-reset" style="width:100%;">↺ Reset</button>
+              <div id="sim-status" style="text-align:center;">
+                <span class="chip chip-idle">Menunggu</span>
+              </div>
+            </div>
+          </div>
+          <!-- Current Weights -->
+          <div class="card">
+            <div class="card-header"><span class="font-label">Bobot Saat Ini</span></div>
+            <div class="card-body" id="sim-weights-display" style="font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.8;">
+              <div><strong>ADALINE 1:</strong></div>
+              <div>w₁₁=0.2, w₁₂=0.1, w₁₃=-0.1</div>
+              <div>b₁=0.3</div>
+              <hr style="border:0;border-top:1px solid var(--outline-variant);margin:8px 0;">
+              <div><strong>ADALINE 2:</strong></div>
+              <div>w₂₁=-0.1, w₂₂=0.2, w₂₃=0.15</div>
+              <div>b₂=-0.2</div>
+            </div>
+          </div>
+        </div>
+        <!-- Main Area -->
+        <div class="sim-main">
+          <!-- Tracing Panel -->
+          <div class="card" id="trace-card">
+            <div class="card-header">
+              <h3 class="font-headline-sm">Perhitungan Manual (Tracing)</h3>
+              <span class="chip chip-idle" id="trace-chip">Belum dimulai</span>
+            </div>
+            <div class="card-body" id="trace-body">
+              <p class="font-body-md" style="color:var(--on-surface-variant);text-align:center;padding:32px 0;">Klik <strong>"Mulai Training"</strong> atau <strong>"Langkah Selanjutnya"</strong> untuk memulai simulasi.</p>
+            </div>
+          </div>
+          <!-- Training Log Table -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="font-headline-sm">Tabel Log Training</h3>
+              <span class="font-label" id="log-count" style="color:var(--on-surface-variant);">0 langkah</span>
+            </div>
+            <div class="table-scroll" id="log-table-container">
+              <table class="data-table" id="log-table">
+                <thead>
+                  <tr>
+                    <th>Epoch</th>
+                    <th>Data</th>
+                    <th>Input</th>
+                    <th>Target</th>
+                    <th>Z₁<sub>in</sub></th>
+                    <th>Z₂<sub>in</sub></th>
+                    <th class="text-center">Y₁</th>
+                    <th class="text-center">Y₂</th>
+                    <th class="text-center">Y<sub>out</sub></th>
+                    <th class="text-center">Status</th>
+                    <th>Koreksi</th>
+                  </tr>
+                </thead>
+                <tbody id="log-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Error Chart -->
+          <div class="card">
+            <div class="card-header"><span class="font-label">Grafik Konvergensi Error per Epoch</span></div>
+            <div class="card-body" style="position:relative;min-height:260px;">
+              <canvas id="error-chart"></canvas>
+              <p id="chart-placeholder" class="font-body-md" style="color:var(--on-surface-variant);text-align:center;padding:60px 0;">Jalankan training untuk melihat grafik konvergensi</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== SLIDE 7: TESTING / INFERENSI ========== -->
+  <section class="slide" id="slide-7">
+    <div class="slide-inner">
+      <div class="section-header">
+        <div class="section-overline">Slide 7 — Fase Testing (Inferensi)</div>
+        <h2 class="font-headline-lg">Prediksi Data Baru</h2>
+      </div>
+      <div class="testing-info-banner">
+        <div class="testing-info-icon">🔒</div>
+        <div>
+          <strong>Fase Testing — Bobot Dikunci</strong>
+          <p>Jaringan berhenti belajar. Tidak ada update bobot, error, atau learning rate. Hanya perhitungan <strong>feedforward</strong> menggunakan bobot final dari training.</p>
+        </div>
+      </div>
+      <div class="testing-layout">
+        <div class="testing-input-panel">
+          <div class="card">
+            <div class="card-header"><h3 class="font-headline-sm">Input Gejala Pasien</h3></div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:20px;">
+              <div class="symptom-toggle" id="toggle-demam">
+                <div class="symptom-info">
+                  <span class="symptom-emoji">🌡️</span>
+                  <div>
+                    <div class="symptom-name">Demam</div>
+                    <div class="symptom-desc">Suhu tubuh tinggi</div>
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="input-demam"/>
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+              <div class="symptom-toggle" id="toggle-batuk">
+                <div class="symptom-info">
+                  <span class="symptom-emoji">😷</span>
+                  <div>
+                    <div class="symptom-name">Batuk</div>
+                    <div class="symptom-desc">Batuk kering/berdahak</div>
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="input-batuk"/>
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+              <div class="symptom-toggle" id="toggle-pilek">
+                <div class="symptom-info">
+                  <span class="symptom-emoji">🤧</span>
+                  <div>
+                    <div class="symptom-name">Pilek</div>
+                    <div class="symptom-desc">Hidung berair/tersumbat</div>
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="input-pilek"/>
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+              <button class="btn btn-primary" id="btn-predict" style="width:100%;padding:14px 20px;font-size:16px;">
+                🔍 Prediksi Sekarang
+              </button>
+              <div id="predict-warning" class="predict-warning" style="display:none;">
+                ⚠️ Jalankan training terlebih dahulu di Slide 6!
+              </div>
+            </div>
+          </div>
+          <!-- Bobot Final -->
+          <div class="card" id="final-weights-card">
+            <div class="card-header"><span class="font-label">🔒 Bobot Final (Terkunci)</span></div>
+            <div class="card-body" id="final-weights-display" style="font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.8;">
+              <p style="color:var(--on-surface-variant);text-align:center;">Jalankan training untuk melihat bobot final</p>
+            </div>
+          </div>
+        </div>
+        <div class="testing-result-panel">
+          <!-- Hasil Prediksi -->
+          <div class="card" id="prediction-result-card">
+            <div class="card-header"><h3 class="font-headline-sm">Hasil Prediksi</h3></div>
+            <div class="card-body" id="prediction-result">
+              <div class="prediction-placeholder">
+                <div style="font-size:48px;margin-bottom:12px;">🩺</div>
+                <p>Masukkan gejala dan klik <strong>"Prediksi Sekarang"</strong></p>
+              </div>
+            </div>
+          </div>
+          <!-- Perhitungan Manual Testing -->
+          <div class="card" id="test-trace-card">
+            <div class="card-header">
+              <h3 class="font-headline-sm">Perhitungan Feedforward</h3>
+              <span class="chip chip-idle" id="test-phase-chip">Fase Testing</span>
+            </div>
+            <div class="card-body" id="test-trace-body">
+              <p class="font-body-md" style="color:var(--on-surface-variant);text-align:center;padding:24px 0;">Perhitungan manual akan muncul setelah prediksi.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== SLIDE 8: Q&A ========== -->
+  <section class="slide" id="slide-8">
+    <div class="slide-inner">
+      <div class="section-header">
+        <div class="section-overline">Slide 8 — Sesi Tanya Jawab</div>
+        <h2 class="font-headline-lg">Ada Pertanyaan? 🙋</h2>
+      </div>
+      <div style="padding:12px 20px;background:linear-gradient(135deg,#eff6ff,#eef2ff);border:1px solid #bfdbfe;border-radius:var(--radius-lg);margin-bottom:var(--sp-lg);display:flex;align-items:center;gap:16px;">
+        <div style="font-size:28px;">📋</div>
+        <div>
+          <strong style="color:var(--primary);display:block;margin-bottom:2px;">Aturan Sesi Q&A</strong>
+          <p style="font-size:13px;color:var(--on-surface-variant);line-height:1.5;margin:0;">Hanya <strong>3 pertanyaan tercepat</strong> yang akan diterima. Isi data diri dan pertanyaan, lalu klik kirim. Jawaban akan disampaikan langsung oleh presenter.</p>
+        </div>
+      </div>
+      <div class="qa-layout">
+        <div class="qa-input-panel">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="font-headline-sm">Ajukan Pertanyaan</h3>
+              <span class="chip chip-idle" id="qa-slot-chip">Slot: 3/3</span>
+            </div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:16px;">
+              <div class="input-group">
+                <label for="qa-nim">NIM</label>
+                <input id="qa-nim" type="text" placeholder="Masukkan NIM..." style="font-family:Inter,sans-serif;"/>
+              </div>
+              <div class="input-group">
+                <label for="qa-nama">Nama</label>
+                <input id="qa-nama" type="text" placeholder="Masukkan Nama..." style="font-family:Inter,sans-serif;"/>
+              </div>
+              <div class="input-group">
+                <label for="qa-kelas">Kelas</label>
+                <input id="qa-kelas" type="text" placeholder="Masukkan Kelas..." style="font-family:Inter,sans-serif;"/>
+              </div>
+              <div class="input-group">
+                <label for="qa-question">Pertanyaan</label>
+                <textarea id="qa-question" rows="4" placeholder="Contoh: Apa perbedaan ADALINE dan MADALINE?" style="font-family:Inter,sans-serif;resize:vertical;"></textarea>
+              </div>
+              <button class="btn btn-primary" id="btn-ask" style="width:100%;">💬 Kirim Pertanyaan</button>
+              <div id="qa-loading" class="qa-loading" style="display:none;">
+                <div class="loading-spinner"></div>
+                <span>Memproses pertanyaan...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="qa-answer-panel">
+          <div class="card" style="height:100%;">
+            <div class="card-header">
+              <h3 class="font-headline-sm">Daftar Pertanyaan</h3>
+              <span class="font-label" id="qa-counter" style="color:var(--secondary);">0 / 3</span>
+            </div>
+            <div class="card-body" id="qa-answer" style="min-height:400px;">
+              <div class="qa-placeholder">
+                <div style="font-size:64px;margin-bottom:16px;">💬</div>
+                <h3 style="margin-bottom:8px;color:var(--on-surface);">Sesi Tanya Jawab Interaktif</h3>
+                <p style="color:var(--on-surface-variant);max-width:400px;margin:0 auto;">
+                  Ajukan pertanyaan seputar algoritma MADALINE. Slot tersedia: <strong>3 pertanyaan</strong>. Jawaban akan disampaikan oleh presenter.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ===== BOTTOM NAVIGATION ===== -->
+<nav class="slide-nav" id="slide-nav">
+  <button class="nav-btn" id="btn-prev" disabled>← Sebelumnya</button>
+  <div class="slide-dots" id="slide-dots">
+    <button class="slide-dot active" data-slide="0"></button>
+    <button class="slide-dot" data-slide="1"></button>
+    <button class="slide-dot" data-slide="2"></button>
+    <button class="slide-dot" data-slide="3"></button>
+    <button class="slide-dot" data-slide="4"></button>
+    <button class="slide-dot" data-slide="5"></button>
+    <button class="slide-dot" data-slide="6"></button>
+    <button class="slide-dot" data-slide="7"></button>
+  </div>
+  <button class="nav-btn primary" id="btn-next">Selanjutnya →</button>
+</nav>
+
+</body>
+</html>

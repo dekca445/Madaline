@@ -1,0 +1,17 @@
+# Dependencies & build
+node_modules/
+
+# Old archives & backup folders
+stitch_madaline_algorithm_simulator/
+stitch_madaline_algorithm_simulator (1)/
+*.zip
+
+# Design docs (not needed for hosting)
+DESIGN.md
+REKOMENDASI STUDI KASUS FLU UNTUK PROJECT MADALINE.pdf
+PEMBAGIAN_DATA_MINING.ipynb
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
