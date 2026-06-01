@@ -637,8 +637,13 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) { console.warn('Firebase save error:', e); return false; }
   }
 
-  // Model gemini-2.0 sudah sunset per 1 Juni 2026, gunakan model terbaru
-  const GEMINI_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash'];
+  // Model fallback chain — kalau satu kena rate limit, coba yang lain
+  const GEMINI_MODELS = [
+    'gemini-2.5-flash-lite',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-2.0-flash'
+  ];
   const MAX_QUESTIONS = 5;
   const btnAsk = document.getElementById('btn-ask');
   let qaHistory = [];
@@ -657,37 +662,49 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/\n/g, '<br>');
   }
 
+  function delay(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+
   async function askGemini(question, systemPrompt) {
     var apiKey = getGeminiKey();
     if (!apiKey) throw new Error('API Key belum diatur. Presenter harus mengatur key di halaman Jawaban.');
-    for (const model of GEMINI_MODELS) {
-      try {
-        const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            system_instruction: { parts: [{ text: systemPrompt }] },
-            contents: [{ parts: [{ text: question }] }]
-          })
-        });
-        if (resp.ok) {
-          const data = await resp.json();
-          if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-            return { answer: data.candidates[0].content.parts[0].text, model: model };
+
+    // Coba 2 ronde — ronde kedua dengan delay 3 detik (menunggu rate limit reset)
+    for (var round = 0; round < 2; round++) {
+      if (round > 0) {
+        console.log('Retry round ' + (round+1) + ' setelah delay...');
+        await delay(3000);
+      }
+      for (const model of GEMINI_MODELS) {
+        try {
+          const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              system_instruction: { parts: [{ text: systemPrompt }] },
+              contents: [{ parts: [{ text: question }] }]
+            })
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+              return { answer: data.candidates[0].content.parts[0].text, model: model };
+            }
           }
+          if (resp.status === 429) {
+            console.warn('Model ' + model + ' rate limited, trying next...');
+            continue;
+          }
+          if (!resp.ok) {
+            const errData = await resp.json().catch(function() { return {}; });
+            console.warn('Gemini model ' + model + ' error:', errData);
+            continue;
+          }
+        } catch (e) {
+          console.warn('Gemini model ' + model + ' failed:', e.message);
         }
-        if (resp.status === 429) continue;
-        if (!resp.ok) {
-          const errData = await resp.json().catch(function() { return {}; });
-          console.warn('Gemini model ' + model + ' error:', errData);
-          continue;
-        }
-      } catch (e) {
-        console.warn('Gemini model ' + model + ' failed:', e.message);
-        if (model === GEMINI_MODELS[GEMINI_MODELS.length - 1]) throw e;
       }
     }
-    throw new Error('Semua model Gemini tidak tersedia.');
+    throw new Error('Rate limit tercapai. Tunggu 1 menit lalu coba lagi.');
   }
 
   function updateQuestionSlots() {
