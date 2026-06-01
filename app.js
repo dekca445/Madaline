@@ -737,6 +737,22 @@ document.addEventListener('DOMContentLoaded', () => {
   // Jalankan inisialisasi
   initQAData();
 
+  // === Auto-refresh: poll Firebase setiap 5 detik agar pertanyaan baru muncul real-time ===
+  setInterval(async function() {
+    try {
+      var cloudData = await loadQAFromFirebase();
+      if (cloudData && cloudData.length !== qaHistory.length) {
+        qaHistory.length = 0;
+        cloudData.forEach(function(q) { qaHistory.push(q); });
+        updateQuestionSlots();
+        if (btnAsk && qaHistory.length >= MAX_QUESTIONS) {
+          btnAsk.disabled = true;
+          btnAsk.textContent = '🔒 Slot Penuh';
+        }
+      }
+    } catch(e) {}
+  }, 5000);
+
   if (btnAsk) {
     btnAsk.addEventListener('click', async function() {
       if (qaHistory.length >= MAX_QUESTIONS) {
